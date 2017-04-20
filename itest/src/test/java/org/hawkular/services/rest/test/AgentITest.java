@@ -46,7 +46,7 @@ public class AgentITest extends AbstractTestBase {
      *
      * @throws Throwable
      */
-    @Test(dependsOnGroups = { EchoCommandITest.GROUP, InventoryITest.GROUP, AlertingITest.GROUP, MetricsITest.GROUP })
+    @Test(dependsOnGroups = { EchoCommandITest.GROUP, AlertingITest.GROUP, MetricsITest.GROUP })
     @RunAsClient
     public void agentCollectingMetrics() throws Throwable {
         final String wfHeapMetricId = "MI~R~[" + testFeedId + "/Local~~]~MT~WildFly Memory Metrics~Heap Used";
@@ -89,7 +89,7 @@ public class AgentITest extends AbstractTestBase {
      *
      * @throws Throwable
      */
-    @Test(dependsOnGroups = { EchoCommandITest.GROUP, InventoryITest.GROUP, AlertingITest.GROUP, MetricsITest.GROUP })
+    @Test(dependsOnGroups = { EchoCommandITest.GROUP, AlertingITest.GROUP, MetricsITest.GROUP })
     @RunAsClient
     public void agentSendingPings() throws Throwable {
         final String pingMetricId = "hawkular-feed-availability-" + testFeedId;
@@ -123,7 +123,7 @@ public class AgentITest extends AbstractTestBase {
     }
 
     /**
-     * Checks that at least he local WildFly and operating system were inserted to the Inventory by Hawkular Agent.
+     * Checks that at least the local WildFly and operating system were inserted to Inventory by Hawkular Agent.
      * <p>
      * A note about {@link Test#dependsOnGroups()}: we actually depend only on {@link InventoryITest#GROUP} here but we
      * want these tests to run at the very end of the suite so that it takes less to wait for the resources to appear in
@@ -131,54 +131,52 @@ public class AgentITest extends AbstractTestBase {
      *
      * @throws Throwable
      */
-    @Test(dependsOnGroups = { InventoryITest.GROUP, EchoCommandITest.GROUP, AlertingITest.GROUP, MetricsITest.GROUP })
+    @Test(dependsOnGroups = { EchoCommandITest.GROUP, AlertingITest.GROUP, MetricsITest.GROUP })
     @RunAsClient
     public void agentDiscoverySuccess() throws Throwable {
-        // FIXME: restore with new API
-//        final String resourcesPath = InventoryITest.traversalPath + "/f;" + testFeedId + "/type=r";
-//        final String wfServerCanonicalPath = "/t;itest-rest-tenant/f;itest-feed/r;Local~~";
-//        final String osCanonicalPath =
-//                "/t;itest-rest-tenant/f;itest-feed/r;platform~%2FOPERATING_SYSTEM%3Ditest-feed_OperatingSystem";
-//
-//        testClient.newRequest()
-//                .header("Hawkular-Tenant", testTenantId)
-//                .path(resourcesPath)
-//                .get()
-//                .assertWithRetries(testResponse -> {
-//                    testResponse
-//                            .assertCode(200)
-//                            .assertJson(foundResources -> {
-//
-//                                log.tracef("Got resources [%s]", foundResources);
-//                                Assert.assertTrue(foundResources.isArray(), String.format(
-//                                        "[%s] should have returned a json array, while it returned [%s]",
-//                                        testResponse.getRequest(), foundResources));
-//                                Assert.assertTrue(foundResources.size() >= 2, String.format(
-//                                        "[%s] should have returned a json array with size >= 2, while it returned [%s]",
-//                                        testResponse.getRequest(), foundResources));
-//
-//                                JsonNode wf = testResponse.asJsonStream()
-//                                        .filter(resource -> wfServerCanonicalPath
-//                                                .equals(resource.get("path").asText()))
-//                                        .findFirst().orElseThrow(() -> new AssertionError(
-//                                                String.format(
-//                                                        "GET [%s] should return an array containing a WF server resource with path [%s]",
-//                                                        resourcesPath, wfServerCanonicalPath)));
-//                                log.tracef("Found a WF server resource [%s]", wf);
-//
-//                                JsonNode os = testResponse.asJsonStream()
-//                                        .filter(resource -> osCanonicalPath.equals(resource.get("path").asText()))
-//                                        .findFirst().orElseThrow(() -> new AssertionError(
-//                                                String.format(
-//                                                        "GET [%s] should return an array containing an OS resource with path [%s]",
-//                                                        resourcesPath, osCanonicalPath)));
-//                                log.tracef("Found an OS resource [%s]", os);
-//
-//                                /* test passed: both the WF server and the OS are there in the list of resources */
-//
-//                            });
-//
-//                }, Retry.times(500).delay(1000));
+        final String resourcesPath = "/hawkular/metrics/strings/raw/query";
+        final String wfServerCanonicalPath = "/t;itest-rest-tenant/f;itest-feed/r;Local~~";
+        final String osCanonicalPath = "/t;itest-rest-tenant/f;itest-feed/r;platform~%2FOPERATING_SYSTEM%3Ditest-feed_OperatingSystem";
+
+        testClient.newRequest()
+                .header("Hawkular-Tenant", testTenantId)
+                .path(resourcesPath)
+                .postJson("{fromEarliest:true, order:\"DESC\", tags:\"module:inventory,feed:itest-feed,type:r\"}")
+                .assertWithRetries(testResponse -> {
+                    testResponse
+                            .assertCode(200)
+                            .assertJson(foundResources -> {
+
+                                log.tracef("Got resources [%s]", foundResources);
+                                Assert.assertTrue(foundResources.isArray(), String.format(
+                                        "[%s] should have returned a json array, while it returned [%s]",
+                                        testResponse.getRequest(), foundResources));
+                                Assert.assertTrue(foundResources.size() >= 2, String.format(
+                                        "[%s] should have returned a json array with size >= 2, while it returned [%s]",
+                                        testResponse.getRequest(), foundResources));
+                                // TODO: Add back a way to verify the resources...
+                                //                                JsonNode wf = testResponse.asJsonStream()
+                                //                                        .filter(resource -> wfServerCanonicalPath
+                                //                                                .equals(resource.get("path").asText()))
+                                //                                        .findFirst().orElseThrow(() -> new AssertionError(
+                                //                                                String.format(
+                                //                                                        "GET [%s] should return an array containing a WF server resource with path [%s]",
+                                //                                                        resourcesPath, wfServerCanonicalPath)));
+                                //                                log.tracef("Found a WF server resource [%s]", wf);
+                                //
+                                //                                JsonNode os = testResponse.asJsonStream()
+                                //                                        .filter(resource -> osCanonicalPath.equals(resource.get("path").asText()))
+                                //                                        .findFirst().orElseThrow(() -> new AssertionError(
+                                //                                                String.format(
+                                //                                                        "GET [%s] should return an array containing an OS resource with path [%s]",
+                                //                                                        resourcesPath, osCanonicalPath)));
+                                //                                log.tracef("Found an OS resource [%s]", os);
+
+                                /* test passed: both the WF server and the OS are there in the list of resources */
+
+                            });
+
+                }, Retry.times(500).delay(1000));
 
     }
 
