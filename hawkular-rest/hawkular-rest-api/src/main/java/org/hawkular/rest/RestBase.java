@@ -17,8 +17,8 @@
 package org.hawkular.rest;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 
-//import org.hawkular.inventory.rest.security.TenantId;
 import org.jboss.resteasy.annotations.GZIP;
 
 /**
@@ -26,14 +26,21 @@ import org.jboss.resteasy.annotations.GZIP;
  * @since 0.0.1
  */
 @GZIP
-// FIXME: import @TenantId here?
 public class RestBase {
+    public static final String TENANT_HEADER_NAME = "Hawkular-Tenant";
 
-    @Inject /*@TenantId*/
-    // using the @AllPermissive annotation the tenant will be always the same
-    private String tenantId;
+    @Inject
+    private HttpServletRequest request;
 
     protected String getTenantId() {
-        return this.tenantId;
+        if (request == null) {
+            throw new IllegalStateException("request was not injected");
+        }
+        String tenantId = request.getHeader(TENANT_HEADER_NAME);
+        if (tenantId == null) {
+            /* IllegalArgumentException because it gets mapped to return code 400 */
+            throw new IllegalArgumentException(TENANT_HEADER_NAME + " HTTP header must be provided");
+        }
+        return tenantId;
     }
 }
